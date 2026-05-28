@@ -1,0 +1,3 @@
+# some comment
+
+extends Resource

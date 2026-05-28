@@ -1,0 +1,55 @@
+# EditorConfig for 云梦泽客栈 (Godot 4.6 Project)
+# https://editorconfig.org
+
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# GDScript files — tabs as per Godot convention
+[*.gd]
+indent_style = tab
+indent_size = 4
+
+# Godot scene/resource files — tabs
+[*.tscn]
+indent_style = tab
+indent_size = 4
+
+[*.tres]
+indent_style = tab
+indent_size = 4
+
+# Godot project settings
+[project.godot]
+indent_style = tab
+indent_size = 4
+
+# JSON files — 2 spaces
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Markdown files — 2 spaces
+[*.md]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+
+# YAML files — 2 spaces
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Shell scripts — tabs
+[*.sh]
+indent_style = tab
+
+# Python files (gdtoolkit is Python) — 4 spaces
+[*.py]
+indent_style = space
+indent_size = 4

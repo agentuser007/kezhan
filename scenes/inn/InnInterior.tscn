@@ -1,0 +1,306 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/components/cooking_station.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/components/fermentation_jar.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/components/bed_interactable.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/components/scene_transition_zone.gd" id="4"]
+[ext_resource type="PackedScene" path="res://player/Player.tscn" id="5"]
+[ext_resource type="Script" path="res://scripts/components/menu_board_interactable.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/components/seat_interactable.gd" id="7"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(40, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_stove"]
+size = Vector2(60, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jar"]
+size = Vector2(24, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bed"]
+size = Vector2(70, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_menuboard"]
+size = Vector2(30, 50)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_seat"]
+size = Vector2(36, 30)
+
+[node name="InnInterior" type="Node2D"]
+
+[node name="PlaceholderLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="Background" type="ColorRect" parent="PlaceholderLayer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.55, 0.4, 0.25, 1)
+
+[node name="FloorLayer" type="TileMapLayer" parent="."]
+z_index = -1
+
+[node name="WallLayer" type="TileMapLayer" parent="."]
+z_index = 0
+
+[node name="FurnitureLayer" type="TileMapLayer" parent="."]
+z_index = 1
+
+[node name="Player" parent="." instance=ExtResource("5")]
+z_index = 2
+position = Vector2(200, 300)
+
+[node name="inn_entrance" type="Marker2D" parent="."]
+position = Vector2(200, 280)
+
+[node name="world_from_inn" type="Marker2D" parent="."]
+position = Vector2(200, 280)
+
+[node name="Stove" type="Area2D" parent="."]
+position = Vector2(160, 200)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1")
+station_type = &"stove"
+station_id = &"stove_1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Stove"]
+shape = SubResource("RectangleShape2D_stove")
+
+[node name="BorderRect" type="ColorRect" parent="Stove"]
+offset_left = -38.0
+offset_top = -43.0
+offset_right = 38.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="Stove"]
+offset_left = -35.0
+offset_top = -40.0
+offset_right = 35.0
+offset_bottom = 0.0
+color = Color(0.2, 0.7, 0.4, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="Stove"]
+offset_left = -35.0
+offset_top = -58.0
+offset_right = 35.0
+offset_bottom = -40.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "灶台"
+horizontal_alignment = 1
+
+[node name="FermentationJar" type="Area2D" parent="."]
+position = Vector2(240, 200)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("2")
+jar_id = &"jar_1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FermentationJar"]
+shape = SubResource("RectangleShape2D_jar")
+
+[node name="BorderRect" type="ColorRect" parent="FermentationJar"]
+offset_left = -18.0
+offset_top = -53.0
+offset_right = 18.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="FermentationJar"]
+offset_left = -15.0
+offset_top = -50.0
+offset_right = 15.0
+offset_bottom = 0.0
+color = Color(0.2, 0.7, 0.4, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="FermentationJar"]
+offset_left = -25.0
+offset_top = -68.0
+offset_right = 25.0
+offset_bottom = -50.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "发酵罐"
+horizontal_alignment = 1
+
+[node name="Bed" type="Area2D" parent="."]
+position = Vector2(320, 150)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bed"]
+shape = SubResource("RectangleShape2D_bed")
+
+[node name="BorderRect" type="ColorRect" parent="Bed"]
+offset_left = -43.0
+offset_top = -53.0
+offset_right = 43.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="Bed"]
+offset_left = -40.0
+offset_top = -50.0
+offset_right = 40.0
+offset_bottom = 0.0
+color = Color(0.2, 0.7, 0.4, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="Bed"]
+offset_left = -40.0
+offset_top = -68.0
+offset_right = 40.0
+offset_bottom = -50.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "床"
+horizontal_alignment = 1
+
+[node name="MenuBoard" type="Area2D" parent="."]
+position = Vector2(280, 200)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("6")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MenuBoard"]
+shape = SubResource("RectangleShape2D_menuboard")
+
+[node name="BorderRect" type="ColorRect" parent="MenuBoard"]
+offset_left = -23.0
+offset_top = -63.0
+offset_right = 23.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="MenuBoard"]
+offset_left = -20.0
+offset_top = -60.0
+offset_right = 20.0
+offset_bottom = 0.0
+color = Color(0.2, 0.7, 0.4, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="MenuBoard"]
+offset_left = -25.0
+offset_top = -78.0
+offset_right = 25.0
+offset_bottom = -60.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "菜牌"
+horizontal_alignment = 1
+
+[node name="Seat1" type="Area2D" parent="."]
+position = Vector2(180, 260)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("7")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Seat1"]
+shape = SubResource("RectangleShape2D_seat")
+
+[node name="BorderRect" type="ColorRect" parent="Seat1"]
+offset_left = -23.0
+offset_top = -43.0
+offset_right = 23.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="Seat1"]
+offset_left = -20.0
+offset_top = -40.0
+offset_right = 20.0
+offset_bottom = 0.0
+color = Color(0.8, 0.7, 0.2, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="Seat1"]
+offset_left = -25.0
+offset_top = -58.0
+offset_right = 25.0
+offset_bottom = -40.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "座位1"
+horizontal_alignment = 1
+
+[node name="Seat2" type="Area2D" parent="."]
+position = Vector2(260, 260)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("7")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Seat2"]
+shape = SubResource("RectangleShape2D_seat")
+
+[node name="BorderRect" type="ColorRect" parent="Seat2"]
+offset_left = -23.0
+offset_top = -43.0
+offset_right = 23.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="Seat2"]
+offset_left = -20.0
+offset_top = -40.0
+offset_right = 20.0
+offset_bottom = 0.0
+color = Color(0.8, 0.7, 0.2, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="Seat2"]
+offset_left = -25.0
+offset_top = -58.0
+offset_right = 25.0
+offset_bottom = -40.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "座位2"
+horizontal_alignment = 1
+
+[node name="Exit" type="Area2D" parent="."]
+position = Vector2(200, 350)
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("4")
+target_scene = "res://scenes/world/WorldMap.tscn"
+spawn_point_name = &"world_from_inn"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Exit"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="BorderRect" type="ColorRect" parent="Exit"]
+offset_left = -28.0
+offset_top = -83.0
+offset_right = 28.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="Exit"]
+offset_left = -25.0
+offset_top = -80.0
+offset_right = 25.0
+offset_bottom = 0.0
+color = Color(0.2, 0.5, 0.9, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="Exit"]
+offset_left = -30.0
+offset_top = -98.0
+offset_right = 30.0
+offset_bottom = -80.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "出口→农场"
+horizontal_alignment = 1

@@ -1,0 +1,19 @@
+# gdlint configuration for 云梦泽客栈
+# https://github.com/Scony/godot-gdscript-toolkit/wiki/Linter
+
+# Relax some rules for existing codebase
+class-definitions-order:
+  # Allow current ordering pattern used in the project
+  enabled: true
+
+max-line-length:
+  # 120 is more practical for game dev with long Vector2/3 expressions
+  max_length: 120
+
+function-variable-name:
+  # Allow short variable names in match/enum-like patterns
+  enabled: false
+
+unused-argument:
+  # Common in Godot signal callbacks and _process/_input
+  enabled: false

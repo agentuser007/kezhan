@@ -1,0 +1,41 @@
+# Godot 4.x generated files
+.godot/
+.import/
+*.translation
+
+# Godot UID cache (auto-regenerated)
+*.uid
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Python (gdtoolkit)
+__pycache__/
+*.pyc
+.venv/
+
+# Node.js (godot-mcp, husky)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+export_presets.cfg
+
+# Temp files
+.temp/
+*.tmp
+
+# GdUnit4 test reports
+test-reports/
+
+# Godot editor metadata
+export_presets.cfg.user

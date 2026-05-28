@@ -1,0 +1,27 @@
+{
+  "name": "kezhan_demo",
+  "version": "1.0.0",
+  "description": "云梦泽客栈 - Godot 4.x farming/inn simulation game",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "lint": "gdlint scripts/",
+    "format": "gdformat scripts/",
+    "format:check": "gdformat --check scripts/",
+    "test": "echo \"Run GdUnit4 tests from Godot editor\" && exit 0"
+  },
+  "keywords": ["godot", "gdscript", "game"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "lint-staged": {
+    "*.gd": [
+      "gdformat",
+      "gdlint"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5"
+  }
+}

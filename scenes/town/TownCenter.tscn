@@ -1,0 +1,152 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://player/Player.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/components/shop_interactable.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/components/scene_transition_zone.gd" id="3"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shop"]
+size = Vector2(60, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(50, 20)
+
+[node name="TownCenter" type="Node2D"]
+
+[node name="PlaceholderLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="Background" type="ColorRect" parent="PlaceholderLayer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.6, 0.55, 0.45, 1)
+
+[node name="GroundLayer" type="TileMapLayer" parent="."]
+z_index = -1
+metadata/_placeholder_tileset_ = "TODO: assign town ground tileset"
+
+[node name="BuildingLayer" type="TileMapLayer" parent="."]
+z_index = 0
+metadata/_placeholder_tileset_ = "TODO: assign town building tileset"
+
+[node name="DecorLayer" type="TileMapLayer" parent="."]
+z_index = 1
+metadata/_placeholder_tileset_ = "TODO: assign town decoration tileset"
+
+[node name="Player" parent="." instance=ExtResource("1")]
+z_index = 2
+position = Vector2(300, 300)
+
+[node name="town_spawn" type="Marker2D" parent="."]
+position = Vector2(300, 300)
+
+[node name="town_from_farm" type="Marker2D" parent="."]
+position = Vector2(100, 300)
+
+[node name="ShopKeeper" type="Area2D" parent="."]
+position = Vector2(400, 200)
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ShopKeeper"]
+shape = SubResource("RectangleShape2D_shop")
+
+[node name="BorderRect" type="ColorRect" parent="ShopKeeper"]
+offset_left = -53.0
+offset_top = -143.0
+offset_right = 53.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="ShopKeeper"]
+offset_left = -50.0
+offset_top = -140.0
+offset_right = 50.0
+offset_bottom = 0.0
+color = Color(0.2, 0.7, 0.4, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="ShopKeeper"]
+offset_left = -50.0
+offset_top = -158.0
+offset_right = 50.0
+offset_bottom = -140.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 16
+text = "杂货铺"
+horizontal_alignment = 1
+
+[node name="FarmExit" type="Area2D" parent="."]
+position = Vector2(50, 300)
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("3")
+target_scene = "res://scenes/world/WorldMap.tscn"
+spawn_point_name = &"farm_from_town"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FarmExit"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="BorderRect" type="ColorRect" parent="FarmExit"]
+offset_left = -33.0
+offset_top = -93.0
+offset_right = 33.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="FarmExit"]
+offset_left = -30.0
+offset_top = -90.0
+offset_right = 30.0
+offset_bottom = 0.0
+color = Color(0.2, 0.5, 0.9, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="FarmExit"]
+offset_left = -35.0
+offset_top = -108.0
+offset_right = 35.0
+offset_bottom = -90.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "→ 农场"
+horizontal_alignment = 1
+
+[node name="InnExit" type="Area2D" parent="."]
+position = Vector2(500, 200)
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("3")
+target_scene = "res://scenes/inn/InnInterior.tscn"
+spawn_point_name = &"inn_entrance"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InnExit"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="BorderRect" type="ColorRect" parent="InnExit"]
+offset_left = -33.0
+offset_top = -93.0
+offset_right = 33.0
+offset_bottom = 3.0
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="PlaceholderRect" type="ColorRect" parent="InnExit"]
+offset_left = -30.0
+offset_top = -90.0
+offset_right = 30.0
+offset_bottom = 0.0
+color = Color(0.2, 0.5, 0.9, 0.7)
+
+[node name="PlaceholderLabel" type="Label" parent="InnExit"]
+offset_left = -35.0
+offset_top = -108.0
+offset_right = 35.0
+offset_bottom = -90.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "→ 客栈"
+horizontal_alignment = 1
