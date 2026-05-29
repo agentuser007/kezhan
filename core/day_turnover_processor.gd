@@ -15,6 +15,7 @@ func execute() -> void:
 
 	_process_farm_growth(farm_data)
 	_process_animal_growth(animal_data)
+	_process_daily_fermentation()
 
 	_apply_farm_growth(farm_data)
 
@@ -36,6 +37,7 @@ func execute() -> void:
 		await summary_confirmed
 
 	TimeManager.wake_up()
+	TavernManager.reset_daily_stats()
 	_is_processing = false
 
 
@@ -44,11 +46,11 @@ func confirm_summary() -> void:
 
 
 func _collect_revenue() -> float:
-	return 0.0
+	return TavernManager.daily_revenue
 
 
 func _collect_reputation_change() -> float:
-	return 0.0
+	return TavernManager.daily_reputation_change
 
 
 func _collect_harvests() -> Array[String]:
@@ -56,13 +58,10 @@ func _collect_harvests() -> Array[String]:
 
 
 func _collect_farm_data() -> Dictionary:
-	var world_map: Node2D = _get_world_map()
-	if world_map == null:
-		return {}
 	var result: Dictionary = {}
-	for coords: Vector2i in world_map.farm_tiles:
-		var tile: FarmTileData = world_map.farm_tiles[coords]
-		if tile.state == FarmTileData.TileState.UNTILLED:
+	for coords: Vector2i in FarmData.farm_tiles:
+		var tile: FarmTileData = FarmData.get_tile_at(coords)
+		if tile == null or tile.state == FarmTileData.TileState.UNTILLED:
 			continue
 		var key: String = "%d,%d" % [coords.x, coords.y]
 		result[key] = {
@@ -86,13 +85,10 @@ func _collect_farm_data() -> Dictionary:
 
 
 func _apply_farm_growth(farm_data: Dictionary) -> void:
-	var world_map: Node2D = _get_world_map()
-	if world_map == null:
-		return
 	for key: String in farm_data:
 		var tile_data: Dictionary = farm_data[key]
 		var coords: Vector2i = tile_data["coords"]
-		var tile: FarmTileData = world_map.get_tile_at(coords)
+		var tile: FarmTileData = FarmData.get_tile_at(coords)
 		if tile == null:
 			continue
 		tile.watered_today = tile_data.get("watered_today", false)
@@ -115,8 +111,10 @@ func _apply_farm_growth(farm_data: Dictionary) -> void:
 			):
 				tile.state = FarmTileData.TileState.HARVESTABLE
 
-		world_map._update_dirt_visual(coords, tile)
-		world_map._update_crop_visual(coords, tile)
+	# If the WorldMap scene is active, repaint its tile layers in real-time
+	var world_map: Node2D = _get_world_map()
+	if world_map != null:
+		world_map._restore_tile_visuals()
 
 
 func _get_world_map() -> Node2D:
@@ -127,7 +125,34 @@ func _get_world_map() -> Node2D:
 
 
 func _collect_animal_data() -> Dictionary:
-	return {}
+	var result: Dictionary = {}
+	var animals: Array[Dictionary] = BarnData.get_animals()
+	for a: Dictionary in animals:
+		var animal_id: String = String(a.get("animal_id", ""))
+		if animal_id.is_empty():
+			continue
+		result[animal_id] = {
+			"animal_id": animal_id,
+			"fed_today": a.get("fed_today", false),
+			"watered_today": a.get("watered_today", false),
+			"hunger_days": a.get("hunger_days", 0),
+			"type": String(a.get("animal_type", "")).to_lower(),
+			"is_weak": a.get("current_state", 0) == 2,
+			"weak_recovery_days": a.get("weak_recovery_remaining", 0),
+			"is_baby": a.get("is_baby", true),
+			"age_days": a.get("age_days", 0),
+			"maturity_days": a.get("maturity_days", 4),
+			"weight": a.get("weight", 10.0),
+			"is_breeding_pig": a.get("is_breeding_pig", false),
+			"is_pregnant": a.get("is_pregnant", false),
+			"pregnancy_days": a.get("pregnancy_days", 0),
+			"is_chick": a.get("is_chick", true) if a.get("is_baby", true) else false,
+			"chick_days": a.get("chick_days", a.get("age_days", 0)),
+			"egg_cycle_days": a.get("cycle_days_elapsed", 0),
+			"eggs_ready": a.get("products_ready", 0),
+			"original_dict": a
+		}
+	return result
 
 
 func _process_farm_growth(farm_data: Dictionary) -> void:
@@ -242,7 +267,7 @@ func _process_animal_growth(animal_data: Dictionary) -> void:
 					data["is_breeding_pig"] = true
 
 			if data.get("is_breeding_pig", false) and not data.get("is_pregnant", false):
-				if data.get("barn_occupancy", 0) < 10:
+				if BarnData.get_occupancy() < 10:
 					if randf() < 0.3:
 						data["is_pregnant"] = true
 						data["pregnancy_days"] = 0
@@ -257,12 +282,14 @@ func _process_animal_growth(animal_data: Dictionary) -> void:
 					data["piglets_to_spawn"] = 3
 
 		if data.get("type", &"") == &"chicken" and not data.get("growth_paused", false):
-			if data.get("is_chick", false):
-				var chick_days: int = data.get("chick_days", 0)
-				chick_days += 1
-				data["chick_days"] = chick_days
-				if chick_days >= 4:
-					data["is_chick"] = false
+			var maturity: int = data.get("maturity_days", 4)
+			var age: int = data.get("age_days", 0)
+			age += 1
+			data["age_days"] = age
+			
+			if data.get("is_baby", true):
+				if age >= maturity:
+					data["is_baby"] = false
 			else:
 				var egg_cycle: int = data.get("egg_cycle_days", 0)
 				egg_cycle += 1
@@ -270,6 +297,58 @@ func _process_animal_growth(animal_data: Dictionary) -> void:
 				if egg_cycle >= 4:
 					data["egg_cycle_days"] = 0
 					data["eggs_ready"] = data.get("eggs_ready", 0) + 10
+
+		# Write back the updated state to the original dictionary reference in BarnData
+		var a: Dictionary = data.get("original_dict", {})
+		if not a.is_empty():
+			if data.get("is_dead", false):
+				a["current_state"] = 3 # DEAD
+			else:
+				a["fed_today"] = data.get("fed_today", false)
+				a["watered_today"] = data.get("watered_today", false)
+				a["hunger_days"] = data.get("hunger_days", 0)
+				a["age_days"] = data.get("age_days", 0)
+				a["is_baby"] = data.get("is_baby", true)
+				
+				if data.get("is_weak", false):
+					a["current_state"] = 2 # WEAK
+				else:
+					a["current_state"] = 0 # HEALTHY
+				
+				a["weak_recovery_remaining"] = data.get("weak_recovery_days", 0)
+				
+				if data.get("type", "") == "pig":
+					a["weight"] = data.get("weight", 10.0)
+					a["is_breeding_pig"] = data.get("is_breeding_pig", false)
+					a["is_pregnant"] = data.get("is_pregnant", false)
+					a["pregnancy_days"] = data.get("pregnancy_days", 0)
+					
+					var piglets: int = data.get("piglets_to_spawn", 0)
+					if piglets > 0:
+						for p in piglets:
+							var template = {
+								"animal_type": &"Pig",
+								"display_name": "小猪",
+								"is_baby": true,
+								"feed_item_id": &"PigFeed",
+								"product_item_id": &"Pork",
+								"product_cycle_days": 24,
+								"maturity_days": 8,
+								"weight": 5.0
+							}
+							BarnData.add_animal(template)
+				
+				if data.get("type", "") == "chicken":
+					a["cycle_days_elapsed"] = data.get("egg_cycle_days", 0)
+					a["products_ready"] = data.get("eggs_ready", 0)
+
+	# Clean up dead animals from BarnData
+	var to_remove = []
+	for a in BarnData.get_animals():
+		if a.get("current_state", 0) == 3:
+			to_remove.append(a.get("animal_id", &""))
+	for aid in to_remove:
+		BarnData.remove_animal(aid)
 
 	EventBus.animal_state_changed.emit(&"all", 0)
 
@@ -280,3 +359,38 @@ func get_save_data() -> Dictionary:
 
 func load_save_data(_data: Dictionary) -> void:
 	_is_processing = false
+
+
+func _process_daily_fermentation() -> void:
+	# 1. Process active fermentation jars in the current scene
+	var active_jars = get_tree().get_nodes_in_group("fermentation_jars")
+	for jar in active_jars:
+		jar.process_daily_fermentation()
+		print("DayTurnoverProcessor: Processed active fermentation jar: ", jar.jar_id)
+
+	# 2. Process offline fermentation jars in the SceneManager cache
+	var inn_scene_path: String = "res://scenes/inn/InnInterior.tscn"
+	if SceneManagerAutoload._scene_data_cache.has(inn_scene_path):
+		var cached_data = SceneManagerAutoload._scene_data_cache[inn_scene_path]
+		var jars_data = cached_data.get("jars", {})
+		var modified = false
+		for jar_id in jars_data:
+			var jar_state = jars_data[jar_id]
+			var content_id = jar_state.get("content_id", "")
+			if not content_id.is_empty():
+				var days = jar_state.get("fermentation_days", 0)
+				days += 1
+				jar_state["fermentation_days"] = days
+				
+				# Quality tier logic
+				var quality_tier = jar_state.get("quality_tier", 0)
+				if days % 4 == 0 and quality_tier < 2: # Max tier 2 (珍藏)
+					quality_tier += 1
+					jar_state["quality_tier"] = quality_tier
+				
+				modified = true
+				print("DayTurnoverProcessor: Processed cached fermentation jar: ", jar_id, " (Days: ", days, ", QualityTier: ", quality_tier, ")")
+		
+		if modified:
+			SceneManagerAutoload._scene_data_cache[inn_scene_path] = cached_data
+

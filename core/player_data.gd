@@ -109,6 +109,10 @@ func add_attribute_xp(attr: Attribute, amount: float) -> void:
 
 
 func _on_attribute_level_up(attr: Attribute) -> void:
+	var attr_name: StringName = ATTRIBUTE_NAMES.get(attr, &"属性")
+	var msg: String = "%s 提升至 %d 级!" % [attr_name, attribute_levels[attr]]
+	call_deferred("_display_level_up_fx", msg)
+
 	match attr:
 		Attribute.STRENGTH:
 			pass
@@ -184,6 +188,7 @@ func add_farming_xp(amount: float) -> void:
 	while farming_xp >= _xp_for_skill_level(farming_level):
 		farming_xp -= _xp_for_skill_level(farming_level)
 		farming_level += 1
+		call_deferred("_display_level_up_fx", "农事 提升至 %d 级!" % farming_level)
 	EventBus.inventory_changed.emit()
 
 
@@ -192,6 +197,7 @@ func add_ranching_xp(amount: float) -> void:
 	while ranching_xp >= _xp_for_skill_level(ranching_level):
 		ranching_xp -= _xp_for_skill_level(ranching_level)
 		ranching_level += 1
+		call_deferred("_display_level_up_fx", "畜牧 提升至 %d 级!" % ranching_level)
 	EventBus.inventory_changed.emit()
 
 
@@ -200,6 +206,7 @@ func add_cooking_xp(amount: float) -> void:
 	while cooking_xp >= _xp_for_skill_level(cooking_level):
 		cooking_xp -= _xp_for_skill_level(cooking_level)
 		cooking_level += 1
+		call_deferred("_display_level_up_fx", "烹饪 提升至 %d 级!" % cooking_level)
 	EventBus.inventory_changed.emit()
 
 
@@ -255,21 +262,31 @@ func _on_new_day_started(_day: int) -> void:
 	else:
 		consecutive_no_eat_days = 0
 
+	var trained_items: Array[String] = []
 	var training_keys: Array = morning_training.keys()
 	for key: StringName in training_keys:
 		if morning_training[key]:
 			match key:
 				&"气力":
 					add_attribute_xp(Attribute.STRENGTH, 5.0)
+					trained_items.append("力量 +5 XP")
 				&"冥想":
 					add_attribute_xp(Attribute.SPIRITUALITY, 5.0)
+					trained_items.append("灵性 +5 XP")
 				&"体力":
 					add_attribute_xp(Attribute.ENDURANCE, 5.0)
+					trained_items.append("耐力 +5 XP")
 				&"敏捷":
 					add_attribute_xp(Attribute.AGILITY, 5.0)
+					trained_items.append("敏捷 +5 XP")
 				&"武学":
 					add_attribute_xp(Attribute.STRENGTH, 3.0)
 					add_attribute_xp(Attribute.AGILITY, 3.0)
+					var wushu_sel: String = String(morning_training_wushu_selection) if not morning_training_wushu_selection.is_empty() else "武学"
+					trained_items.append("%s +3 XP" % wushu_sel)
+
+	if trained_items.size() > 0:
+		call_deferred("_display_morning_training_fx", trained_items)
 
 
 func take_action(stamina_cost: int = 1) -> bool:
@@ -369,3 +386,21 @@ func load_save_data(data: Dictionary) -> void:
 	current_scene = data.get("current_scene", "")
 	var dir_data: Dictionary = data.get("facing_direction", {"x": 0, "y": 1})
 	facing_direction = Vector2(dir_data.get("x", 0), dir_data.get("y", 1))
+
+
+func _display_morning_training_fx(items: Array) -> void:
+	var player_nodes = get_tree().get_nodes_in_group("player")
+	if player_nodes.is_empty():
+		return
+	var player = player_nodes[0]
+	if player and player.has_method("show_training_text"):
+		player.show_training_text(items)
+
+
+func _display_level_up_fx(msg: String) -> void:
+	var player_nodes = get_tree().get_nodes_in_group("player")
+	if player_nodes.is_empty():
+		return
+	var player = player_nodes[0]
+	if player and player.has_method("_spawn_floating_text"):
+		player._spawn_floating_text("🏆 " + msg, Color(0.3, 1.0, 0.5))

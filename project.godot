@@ -30,6 +30,8 @@ AudioManager="*res://core/audio_manager.gd"
 GameUI="*res://ui/game_ui.tscn"
 McpInteractionServer="*res://scripts/mcp_interaction_server.gd"
 BarnData="*res://core/barn_data.gd"
+FarmData="*res://core/farm_data.gd"
+TavernManager="*res://core/tavern_manager.gd"
 
 [display]
 

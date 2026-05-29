@@ -282,6 +282,19 @@ func _execute_farm_action(cell: Vector2i) -> void:
 	if item_id == &"":
 		return
 
+	# Pre-check stamina
+	var stamina_cost: int = 0
+	match item_id:
+		&"Hoe", &"WateringCan", &"Sickle", &"WeedingSickle", &"Axe", &"Hammer":
+			stamina_cost = 1
+		&"Fertilizer", &"PestRemedy":
+			stamina_cost = 1
+
+	if stamina_cost > 0 and PlayerData.current_stamina < stamina_cost:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+
 	var success: bool = false
 	var anim_suffix: String = _get_facing_anim_suffix()
 
@@ -342,6 +355,7 @@ func _execute_farm_action(cell: Vector2i) -> void:
 					AudioManager.play_sfx(&"seeds")
 
 	if success:
+		PlayerData.take_action(stamina_cost)
 		EventBus.farm_tile_state_changed.emit(cell, 0)
 		EventBus.notification_requested.emit(_action_feedback_text(item_id))
 	elif (
@@ -367,10 +381,24 @@ func _execute_hoe_action() -> void:
 	var world_map: Node2D = _get_world_map()
 	if world_map == null:
 		return
+	
+	# Pre-check stamina and slice cells to prevent exceeding stamina
+	var stamina_cost_per_tile: int = 1
+	var max_tiles: int = PlayerData.current_stamina / stamina_cost_per_tile
+	if max_tiles <= 0:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var facing_cell: Vector2i = _get_facing_cell()
 	var cells: Array[Vector2i] = world_map.get_hoe_cells(facing_cell)
+	
+	if cells.size() > max_tiles:
+		cells = cells.slice(0, max_tiles)
+		
 	var count: int = world_map.till_tiles(cells)
 	if count > 0:
+		PlayerData.take_action(count * stamina_cost_per_tile)
 		_play_tool_anim("hoe", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"hoe")
 		EventBus.notification_requested.emit("耕地完成 ×%d" % count)
@@ -384,9 +412,41 @@ func _execute_seed_spread_action(seed_id: StringName) -> void:
 		return
 	if not InventoryManager.has_item(seed_id, 1):
 		return
+		
+	# Planting around is free or costs 1 stamina per tile
+	var stamina_cost_per_tile: int = 1
+	var max_tiles: int = PlayerData.current_stamina / stamina_cost_per_tile
+	if max_tiles <= 0:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var player_cell: Vector2i = _get_player_cell()
-	var count: int = world_map.plant_tiles_around(player_cell, seed_id)
+	var cells: Array[Vector2i] = world_map.get_circle_cells(player_cell)
+	
+	# Only keep cells that can actually be planted on to count cost
+	var plantable_cells: Array[Vector2i] = []
+	for cell in cells:
+		var tile = world_map.get_tile_at(cell)
+		if tile and tile.can_plant():
+			plantable_cells.append(cell)
+			
+	if plantable_cells.is_empty():
+		EventBus.notification_requested.emit("无法播种")
+		return
+		
+	if plantable_cells.size() > max_tiles:
+		plantable_cells = plantable_cells.slice(0, max_tiles)
+		
+	var count: int = 0
+	for cell in plantable_cells:
+		if not InventoryManager.has_item(seed_id, 1):
+			break
+		if world_map.plant_tile(cell, seed_id):
+			count += 1
+			
 	if count > 0:
+		PlayerData.take_action(count * stamina_cost_per_tile)
 		_play_tool_anim("seeds", "")
 		AudioManager.play_sfx(&"seeds")
 		EventBus.notification_requested.emit("播种完成 ×%d" % count)
@@ -398,10 +458,23 @@ func _execute_water_circle_action() -> void:
 	var world_map: Node2D = _get_world_map()
 	if world_map == null:
 		return
+		
+	var stamina_cost_per_tile: int = 1
+	var max_tiles: int = PlayerData.current_stamina / stamina_cost_per_tile
+	if max_tiles <= 0:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var facing_cell: Vector2i = _get_facing_cell()
 	var cells: Array[Vector2i] = world_map.get_circle_cells(facing_cell)
+	
+	if cells.size() > max_tiles:
+		cells = cells.slice(0, max_tiles)
+		
 	var count: int = world_map.water_tiles(cells)
 	if count > 0:
+		PlayerData.take_action(count * stamina_cost_per_tile)
 		_play_tool_anim("water", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"watering")
 		EventBus.notification_requested.emit("浇水完成 ×%d" % count)
@@ -413,12 +486,25 @@ func _execute_sickle_circle_action() -> void:
 	var world_map: Node2D = _get_world_map()
 	if world_map == null:
 		return
+		
+	var stamina_cost_per_tile: int = 1
+	var max_tiles: int = PlayerData.current_stamina / stamina_cost_per_tile
+	if max_tiles <= 0:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var facing_cell: Vector2i = _get_facing_cell()
 	var cells: Array[Vector2i] = world_map.get_circle_cells(facing_cell)
+	
+	if cells.size() > max_tiles:
+		cells = cells.slice(0, max_tiles)
+		
 	var weed_count: int = world_map.clear_weeds_in_cells(cells)
 	var junk_count: int = world_map.clear_junk_weeds_in_cells(cells)
 	var total: int = weed_count + junk_count
 	if total > 0:
+		PlayerData.take_action(total * stamina_cost_per_tile)
 		_play_tool_anim("sickle", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"sickle")
 		EventBus.notification_requested.emit("除草完成 ×%d" % total)
@@ -430,8 +516,16 @@ func _execute_axe_action() -> void:
 	var world_map: Node2D = _get_world_map()
 	if world_map == null:
 		return
+		
+	var stamina_cost: int = 1
+	if PlayerData.current_stamina < stamina_cost:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var cell: Vector2i = _get_facing_cell()
 	if world_map.chop_wood_at(cell):
+		PlayerData.take_action(stamina_cost)
 		_play_tool_anim("axe", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"axe")
 		EventBus.notification_requested.emit("砍伐完成 - 柴火×2")
@@ -443,12 +537,21 @@ func _execute_hammer_action() -> void:
 	var world_map: Node2D = _get_world_map()
 	if world_map == null:
 		return
+		
+	var stamina_cost: int = 1
+	if PlayerData.current_stamina < stamina_cost:
+		show_sweat_bubble()
+		EventBus.notification_requested.emit("体力不足")
+		return
+		
 	var cell: Vector2i = _get_facing_cell()
 	if world_map.smash_stone_at(cell):
+		PlayerData.take_action(stamina_cost)
 		_play_tool_anim("hammer", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"hammer")
 		EventBus.notification_requested.emit("碎石完成 - 石头")
 	elif world_map.until_tile(cell):
+		PlayerData.take_action(stamina_cost)
 		_play_tool_anim("hammer", _get_facing_anim_suffix())
 		AudioManager.play_sfx(&"hammer")
 		EventBus.notification_requested.emit("反耕完成")
@@ -606,3 +709,52 @@ func _sq(base: String, pattern: String, start: int, end: int) -> Array:
 	for i: int in range(start, end + 1):
 		result.append(base + pattern + str(i) + ".png")
 	return result
+
+
+func show_sweat_bubble() -> void:
+	# Create a tiny floating sweat bubble above player's head
+	var label: Label = Label.new()
+	label.text = "💦 体力不足"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	label.add_theme_constant_override("outline_size", 2)
+	label.position = Vector2(-40, -32) # Position above player head
+	label.custom_minimum_size = Vector2(80, 20)
+	add_child(label)
+	
+	# Animate floating upwards and fading out
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 20.0, 1.0)
+	tween.tween_property(label, "modulate:a", 0.0, 1.0)
+	tween.chain().tween_callback(label.queue_free)
+
+
+func show_training_text(items: Array) -> void:
+	var delay: float = 0.0
+	for item_str in items:
+		get_tree().create_timer(delay).timeout.connect(func():
+			_spawn_floating_text("✨ " + item_str + " (Eat & Train!)", Color(1.0, 0.85, 0.3))
+		)
+		delay += 0.8
+
+
+func _spawn_floating_text(text_str: String, color: Color) -> void:
+	var label: Label = Label.new()
+	label.text = text_str
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	label.add_theme_constant_override("outline_size", 2)
+	label.position = Vector2(-80, -32) # Centered above player
+	label.custom_minimum_size = Vector2(160, 20)
+	add_child(label)
+	
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 30.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(label.queue_free)

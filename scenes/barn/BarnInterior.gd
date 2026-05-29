@@ -207,7 +207,7 @@ func _setup_animal_visual(animal: AnimalBase) -> void:
 func _get_random_spawn_position() -> Vector2:
 	# Try to get spawn area position, otherwise use a default position
 	if has_node("AnimalSpawnArea"):
-		var spawn_area := get_node("AnimalSpawnArea")
+		var spawn_area := get_node("AnimalSpawnArea") as Node2D
 		var pos := spawn_area.global_position
 		# Add some random offset
 		pos.x += randf_range(-20, 20)

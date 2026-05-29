@@ -19,6 +19,7 @@ signal cooking_cancelled
 
 var _current_recipe: Dictionary = {}
 var _all_recipes: Array[Dictionary] = []
+var _active_station: Interactable = null
 
 
 func _ready() -> void:
@@ -33,7 +34,13 @@ func _ready() -> void:
 	if close_button:
 		close_button.pressed.connect(_on_close)
 	visibility_changed.connect(_on_visibility_changed)
+	EventBus.player_interacted.connect(_on_player_interacted)
 	_populate_recipe_list()
+
+
+func _on_player_interacted(target: Interactable) -> void:
+	if target.has_method("start_cooking"):
+		_active_station = target
 
 
 func _on_visibility_changed() -> void:
@@ -163,12 +170,19 @@ func _on_start_cooking() -> void:
 		if quality_preview:
 			quality_preview.text = "食材不足，无法烹饪!"
 		return
+	
 	_consume_ingredients()
-	cooking_started.emit(StringName(_current_recipe.get("id", "")))
-	var output_id: StringName = StringName(_current_recipe.get("output_id", ""))
-	var output_amount: int = _current_recipe.get("output_amount", 1)
-	if not output_id.is_empty():
-		InventoryManager.add_item(output_id, output_amount)
+	var recipe_id: StringName = StringName(_current_recipe.get("id", ""))
+	cooking_started.emit(recipe_id)
+	
+	if _active_station and _active_station.has_method("start_cooking"):
+		_active_station.start_cooking(recipe_id, 5.0) # Default to 5.0 seconds
+	else:
+		var output_id: StringName = StringName(_current_recipe.get("output_id", ""))
+		var output_amount: int = _current_recipe.get("output_amount", 1)
+		if not output_id.is_empty():
+			InventoryManager.add_item(output_id, output_amount)
+	
 	GameUI.close_panel()
 
 

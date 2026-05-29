@@ -4,7 +4,9 @@ extends Node2D
 @export var farm_grid_height: int = 25
 @export var tile_size: int = 32
 
-var farm_tiles: Dictionary = {}
+var farm_tiles: Dictionary:
+	get:
+		return FarmData.farm_tiles
 
 @onready var player: CharacterBody2D = $Player
 @onready var crop_layer: TileMapLayer = $CropLayer
@@ -21,9 +23,14 @@ func _ready() -> void:
 	EventBus.new_day_started.connect(_on_new_day)
 	_assign_tilesets()
 	_build_border_walls()
-	print("WorldMap: Initializing farm tiles")
-	_initialize_farm_tiles()
-	print("WorldMap: Farm tiles initialized, count: ", farm_tiles.size())
+	
+	if FarmData.farm_tiles.is_empty():
+		print("WorldMap: Initializing global farm tiles")
+		_initialize_farm_tiles()
+	else:
+		print("WorldMap: Restoring farm tiles from FarmData, count: ", FarmData.farm_tiles.size())
+		_restore_tile_visuals()
+		
 	if farm_tile_overlay:
 		farm_tile_overlay.setup(self)
 
@@ -95,7 +102,15 @@ func _initialize_farm_tiles() -> void:
 		for y: int in farm_grid_height:
 			var coords: Vector2i = Vector2i(x, y)
 			if _is_farmable_cell(coords):
-				farm_tiles[coords] = FarmTileData.new()
+				var tile = FarmTileData.new()
+				FarmData.set_tile_at(coords, tile)
+
+
+func _restore_tile_visuals() -> void:
+	for coords: Vector2i in FarmData.farm_tiles:
+		var tile: FarmTileData = FarmData.get_tile_at(coords)
+		_update_dirt_visual(coords, tile)
+		_update_crop_visual(coords, tile)
 
 
 func _is_farmable_cell(coords: Vector2i) -> bool:
@@ -106,9 +121,7 @@ func _is_farmable_cell(coords: Vector2i) -> bool:
 
 
 func get_tile_at(coords: Vector2i) -> FarmTileData:
-	if farm_tiles.has(coords):
-		return farm_tiles[coords]
-	return null
+	return FarmData.get_tile_at(coords)
 
 
 func has_junk_at(coords: Vector2i) -> bool:
@@ -656,34 +669,4 @@ func _on_scene_change(_scene_path: String, _spawn_point: StringName) -> void:
 	pass
 
 
-func get_save_data() -> Dictionary:
-	print("WorldMap: Getting save data, farm_tiles size: ", farm_tiles.size())
-	var tiles_data: Dictionary = {}
-	for coords: Vector2i in farm_tiles:
-		var tile: FarmTileData = farm_tiles[coords]
-		if tile.state == FarmTileData.TileState.UNTILLED:
-			continue
-		var key: String = "%d,%d" % [coords.x, coords.y]
-		tiles_data[key] = tile.get_save_data()
-	print("WorldMap: Saving ", tiles_data.size(), " tiles")
-	return {"farm_tiles": tiles_data}
 
-
-func load_save_data(data: Dictionary) -> void:
-	print("WorldMap: Loading save data: ", data)
-	var tiles_data: Dictionary = data.get("farm_tiles", {})
-	print("WorldMap: Loading ", tiles_data.size(), " tiles")
-	# Do NOT clear farm_tiles – _initialize_farm_tiles() already created
-	# UNTILLED entries for every farmable cell.  We only overwrite the
-	# tiles that have meaningful (non-UNTILLED) saved state.
-	for key: String in tiles_data:
-		var parts: PackedStringArray = key.split(",")
-		if parts.size() != 2:
-			continue
-		var coords: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
-		var tile: FarmTileData = FarmTileData.new()
-		tile.load_save_data(tiles_data[key])
-		farm_tiles[coords] = tile
-		_update_dirt_visual(coords, tile)
-		_update_crop_visual(coords, tile)
-	print("WorldMap: Loaded save data, farm_tiles size: ", farm_tiles.size())

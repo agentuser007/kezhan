@@ -20,6 +20,7 @@ var _quality_tiers: Array[Dictionary] = [
 
 func _ready() -> void:
 	super._ready()
+	add_to_group("fermentation_jars")
 	interaction_name = "发酵坛"
 	interaction_hint = "[空格] 发酵坛"
 

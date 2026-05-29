@@ -39,3 +39,22 @@ test-reports/
 
 # Godot editor metadata
 export_presets.cfg.user
+
+# IDE and tool configs
+.roo/
+.opencode/
+.agents/
+.husky/
+
+# Legacy/scratch files
+_legacy/
+scratch/
+
+# Test reports
+reports/
+
+# Additional Node modules (if any)
+node_modules/
+
+# Additional OS files
+.DS_Store

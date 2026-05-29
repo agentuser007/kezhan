@@ -33,6 +33,9 @@ func _ready() -> void:
 		load_close_button.pressed.connect(_on_load_close)
 	_build_save_slots()
 	_apply_button_styles()
+	
+	if AudioManager:
+		AudioManager.play_bgm(&"title")
 
 
 func _build_save_slots() -> void:

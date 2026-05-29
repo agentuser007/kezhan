@@ -42,3 +42,8 @@ func _stand_up() -> void:
 func force_stand_up() -> void:
 	if _is_seated:
 		_stand_up()
+
+
+func is_player_seated() -> bool:
+	return _is_seated
+

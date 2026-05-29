@@ -12,6 +12,7 @@ var _slot_icons: Array[TextureRect] = []
 var _slot_count_labels: Array[Label] = []
 var _selected_index: int = 0
 var _name_label: Label = null
+var _pulse_time: float = 0.0
 
 
 func _ready() -> void:
@@ -137,13 +138,21 @@ func _update_display() -> void:
 		var item: Dictionary = InventoryManager.get_hotbar_item(i)
 		if item.is_empty() or item.get("id", &"") == &"":
 			if icon:
-				icon.texture = null
+				# Show a faint silhouette shadow of the default tool for that slot
+				var default_tools: Array[StringName] = [&"WateringCan", &"Hoe", &"Sickle", &"Axe", &"Hammer"]
+				if i < default_tools.size():
+					icon.texture = _get_item_icon(default_tools[i])
+					icon.modulate = Color(1.0, 1.0, 1.0, 0.15) # Faint transparent silhouette outline
+				else:
+					icon.texture = null
+					icon.modulate = Color(1.0, 1.0, 1.0, 1.0)
 			if count_label:
 				count_label.text = ""
 			slot.tooltip_text = ""
 		else:
 			if icon:
 				icon.texture = _get_item_icon(item["id"])
+				icon.modulate = Color(1.0, 1.0, 1.0, 1.0) # Full opacity for real items
 			var info: Dictionary = InventoryManager.get_item_info(item["id"])
 			var amount: int = item.get("amount", 0)
 			if count_label:
@@ -168,6 +177,21 @@ func _update_display() -> void:
 			_name_label.text = "%s (数量: %d)" % [name_str, amount]
 
 	_update_selection_highlight()
+
+
+func _process(delta: float) -> void:
+	_pulse_time += delta * 4.0
+	var pulse: float = (sin(_pulse_time) + 1.0) / 2.0 # Breathe from 0 to 1
+	
+	if _selected_index < _slot_controls.size():
+		var slot: PanelContainer = _slot_controls[_selected_index] as PanelContainer
+		if slot:
+			var style = slot.get_theme_stylebox("panel") as StyleBoxFlat
+			if style:
+				# Breathe outline color and shadow
+				style.border_color = Color(1.0, 0.8 + 0.15 * pulse, 0.2 + 0.2 * pulse, 0.95)
+				style.shadow_size = int(3.0 + 3.0 * pulse)
+				style.set_shadow_color(Color(1.0, 0.85, 0.3, 0.1 + 0.2 * pulse))
 
 
 func _on_selection_changed(slot: int) -> void:

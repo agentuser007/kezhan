@@ -17,6 +17,8 @@ func new_game() -> void:
 	InventoryManager._initialize_starting_items()
 	# Reset barn data for new game
 	BarnData.reset()
+	FarmData.reset()
+	TavernManager.reset()
 	GameUI.show_game_ui()
 	SceneManagerAutoload._on_scene_change_requested(
 		"res://scenes/world/WorldMap.tscn", &"farm_spawn"
@@ -24,18 +26,22 @@ func new_game() -> void:
 
 
 func save_game(slot: int) -> void:
-	var world_map_data: Dictionary = {}
 	var current_scene: Node = get_tree().current_scene
-	if current_scene and current_scene.has_method("get_save_data"):
-		world_map_data = current_scene.get_save_data()
+	var active_scene_path: String = SceneManagerAutoload.get_current_scene_path()
+	if current_scene and current_scene.has_method("get_save_data") and not active_scene_path.is_empty():
+		SceneManagerAutoload._scene_data_cache[active_scene_path] = current_scene.get_save_data()
+
 	var save_data: Dictionary = {
 		"version": SAVE_VERSION,
 		"time": TimeManager.get_save_data(),
 		"player": PlayerData.get_save_data(),
 		"inventory": InventoryManager.get_save_data(),
 		"day_turnover": DayTurnoverProcessor.get_save_data(),
-		"world_map": world_map_data,
+		"world_map": {}, # Kept for backward compatibility but unused
 		"barn_data": BarnData.get_save_data(),
+		"farm_data": FarmData.get_save_data(),
+		"scene_cache": SceneManagerAutoload._scene_data_cache,
+		"tavern_manager": TavernManager.get_save_data(),
 	}
 	var file_path: String = SAVE_DIR + "save_%d.json" % slot
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
@@ -69,11 +75,10 @@ func load_game(slot: int) -> void:
 	var version: int = data.get("version", 0)
 	data = _migrate(data, version)
 
-	# Clear scene cache so save-file data takes precedence over stale cache,
-	# then pre-populate the cache with the save file's world_map data.
-	# The SceneManagerAutoload will apply it automatically when the new
-	# scene finishes loading – no manual load_save_data() call needed.
 	SceneManagerAutoload.clear_scene_cache()
+	var scene_cache: Dictionary = data.get("scene_cache", {})
+	for path in scene_cache:
+		SceneManagerAutoload.preload_scene_cache(path, scene_cache[path])
 
 	TimeManager.game_started = true
 	TimeManager.load_save_data(data.get("time", {}))
@@ -83,12 +88,18 @@ func load_game(slot: int) -> void:
 
 	if data.has("barn_data"):
 		BarnData.load_save_data(data.get("barn_data", {}))
+	if data.has("farm_data"):
+		FarmData.load_save_data(data.get("farm_data", {}))
+	if data.has("tavern_manager"):
+		TavernManager.load_save_data(data.get("tavern_manager", {}))
 
 	var scene_path: String = PlayerData.current_scene
 	if scene_path.is_empty():
 		scene_path = "res://scenes/world/WorldMap.tscn"
 
-	SceneManagerAutoload.preload_scene_cache(scene_path, data.get("world_map", {}))
+	# If the current scene wasn't in the cache but an old-style world_map is, preload it as fallback
+	if not scene_cache.has(scene_path) and data.has("world_map"):
+		SceneManagerAutoload.preload_scene_cache(scene_path, data.get("world_map", {}))
 
 	GameUI.show_game_ui()
 	SceneManagerAutoload._on_scene_change_requested(scene_path, &"")

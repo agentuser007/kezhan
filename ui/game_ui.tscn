@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" path="res://ui/farm/farm_tile_tooltip.tscn" id="20"]
 [ext_resource type="PackedScene" path="res://ui/fermenter/FermenterUI.tscn" id="21"]
 [ext_resource type="PackedScene" path="res://ui/barn/BarnManagementUI.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://ui/serve/ServeUI.tscn" id="23"]
 
 [node name="GameUI" type="CanvasLayer"]
 layer = 10
@@ -363,6 +364,9 @@ visible = false
 visible = false
 
 [node name="BarnManagementUI" parent="PanelLayer" instance=ExtResource("22")]
+visible = false
+
+[node name="ServeUI" parent="PanelLayer" instance=ExtResource("23")]
 visible = false
 
 [node name="TransitionLayer" type="CanvasLayer" parent="."]

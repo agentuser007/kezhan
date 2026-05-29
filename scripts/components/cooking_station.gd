@@ -19,6 +19,7 @@ signal cooking_progress_changed(progress: float)
 
 func _ready() -> void:
 	super._ready()
+	add_to_group("cooking_stations")
 	interaction_name = "灶台"
 	interaction_hint = "[空格] 灶台"
 
@@ -52,11 +53,21 @@ func _cancel_cooking() -> void:
 func _collect_dish() -> void:
 	if current_recipe_id == &"":
 		return
-	InventoryManager.add_item(_get_output_item_id(current_recipe_id), 1)
+	
+	var recipe: Dictionary = InventoryManager.get_recipe(current_recipe_id)
+	var output_id: StringName = current_recipe_id
+	var amount: int = 1
+	if not recipe.is_empty():
+		output_id = StringName(recipe.get("output_id", ""))
+		amount = recipe.get("output_amount", 1)
+	
+	InventoryManager.add_item(output_id, amount)
+	
+	var finished_recipe: StringName = current_recipe_id
 	current_state = StationState.IDLE
 	current_recipe_id = &""
 	cooking_progress = 0.0
-	EventBus.cooking_finished.emit(station_id, current_recipe_id)
+	EventBus.cooking_finished.emit(station_id, finished_recipe)
 
 
 func start_cooking(recipe_id: StringName, duration: float = 30.0) -> void:
@@ -76,8 +87,16 @@ func _process(delta: float) -> void:
 			cooking_progress = cooking_duration
 
 
-func _get_output_item_id(recipe_id: StringName) -> StringName:
-	var recipes: Dictionary = {
-		&"hongshaorou": &"HongshaoRou",
-	}
-	return recipes.get(recipe_id, recipe_id)
+func get_interaction_text() -> String:
+	match current_state:
+		StationState.IDLE:
+			return "[空格] 开始烹饪"
+		StationState.COOKING:
+			var percent: int = int((cooking_progress / cooking_duration) * 100.0)
+			return "[空格] 正在烹饪 (%d%%) - 按空格取消" % percent
+		StationState.FINISHED:
+			var recipe: Dictionary = InventoryManager.get_recipe(current_recipe_id)
+			var dish_name: String = recipe.get("name", "菜肴") if not recipe.is_empty() else "菜肴"
+			return "[空格] 收集%s (烹饪完成!)" % dish_name
+	return super.get_interaction_text()
+

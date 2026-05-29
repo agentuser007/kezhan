@@ -44,17 +44,26 @@ func add_animal(animal_template: Dictionary) -> bool:
 		return false
 	var animal: Dictionary = animal_template.duplicate()
 	if not animal.has("animal_id"):
-		animal["animal_id"] = &"animal_%d" % _animals.size() + Time.get_ticks_msec()
+		animal["animal_id"] = StringName("animal_%d_%d" % [_animals.size(), Time.get_ticks_msec()])
 	# Set defaults
-	animal.setdefault("is_baby", true)
-	animal.setdefault("age_days", 0)
-	animal.setdefault("hunger_days", 0)
-	animal.setdefault("fed_today", false)
-	animal.setdefault("watered_today", false)
-	animal.setdefault("products_ready", 0)
-	animal.setdefault("cycle_days_elapsed", 0)
-	animal.setdefault("current_state", 0)  # AnimalBase.AnimalState.HEALTHY
-	animal.setdefault("weak_recovery_remaining", 0)
+	if not animal.has("is_baby"):
+		animal["is_baby"] = true
+	if not animal.has("age_days"):
+		animal["age_days"] = 0
+	if not animal.has("hunger_days"):
+		animal["hunger_days"] = 0
+	if not animal.has("fed_today"):
+		animal["fed_today"] = false
+	if not animal.has("watered_today"):
+		animal["watered_today"] = false
+	if not animal.has("products_ready"):
+		animal["products_ready"] = 0
+	if not animal.has("cycle_days_elapsed"):
+		animal["cycle_days_elapsed"] = 0
+	if not animal.has("current_state"):
+		animal["current_state"] = 0  # AnimalBase.AnimalState.HEALTHY
+	if not animal.has("weak_recovery_remaining"):
+		animal["weak_recovery_remaining"] = 0
 	_animals.append(animal)
 	animal_added.emit(animal)
 	return true

@@ -63,6 +63,7 @@ func _on_scene_change_requested(scene_path: String, spawn_point: StringName = &"
 	EventBus.inventory_changed.emit()
 
 	EventBus.screen_transition_finished.emit()
+	_update_scene_bgm(scene_path)
 	_is_transitioning = false
 
 
@@ -107,6 +108,7 @@ func go_to_main_menu() -> void:
 		GameUI.hide_game_ui()
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
 	_current_scene_path = ""
+	_update_scene_bgm("res://scenes/main_menu/MainMenu.tscn")
 	_is_transitioning = false
 
 
@@ -121,3 +123,17 @@ func clear_scene_cache() -> void:
 func preload_scene_cache(scene_path: String, data: Dictionary) -> void:
 	print("SceneManager: Preloading scene cache for ", scene_path, ": ", data)
 	_scene_data_cache[scene_path] = data
+
+
+func _update_scene_bgm(scene_path: String) -> void:
+	if not AudioManager:
+		return
+	var filename = scene_path.get_file()
+	if filename == "WorldMap.tscn":
+		AudioManager.play_bgm(&"farm")
+	elif filename == "InnInterior.tscn" or filename == "BarnInterior.tscn":
+		AudioManager.play_bgm(&"house")
+	elif filename == "TownCenter.tscn":
+		AudioManager.play_bgm(&"town")
+	elif filename == "MainMenu.tscn":
+		AudioManager.play_bgm(&"title")

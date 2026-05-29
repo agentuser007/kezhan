@@ -34,14 +34,35 @@ func show_summary(revenue: float, reputation_change: float, harvests: Array[Stri
 	_yesterday_reputation_change = reputation_change
 	_yesterday_harvests = harvests
 
+	# Rolling number tween
+	var tween: Tween = create_tween()
+	
 	if revenue_label:
-		revenue_label.text = "营业额: %.1f 金" % revenue
+		revenue_label.text = "营业额: 0.0 金"
+		if revenue > 0.0:
+			tween.tween_method(
+				func(v: float): revenue_label.text = "营业额: %.1f 金" % v,
+				0.0, revenue, 1.2
+			).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		else:
+			revenue_label.text = "营业额: 0.0 金"
+			
 	if reputation_label:
-		reputation_label.text = "美誉度: %+.1f" % reputation_change
+		reputation_label.text = "美誉度: +0.0"
+		if reputation_change != 0.0:
+			var sign_char: String = "+" if reputation_change > 0 else ""
+			tween.parallel().tween_method(
+				func(v: float): reputation_label.text = "美誉度: %s%.1f" % [sign_char if v >= 0 else "", v],
+				0.0, reputation_change, 1.2
+			).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		else:
+			reputation_label.text = "美誉度: +0.0"
+
 	if harvest_label:
 		harvest_label.text = "收获: %s" % ", ".join(harvests) if harvests.size() > 0 else "无"
 
-	var info_label: Label = page_one.VBox.get_node_or_null("InfoLabel") if page_one.VBox else null
+	var page_one_vbox: VBoxContainer = page_one.get_node_or_null("VBox") if page_one else null
+	var info_label: Label = page_one_vbox.get_node_or_null("InfoLabel") if page_one_vbox else null
 	if info_label == null:
 		info_label = Label.new()
 		info_label.name = "InfoLabel"
@@ -55,22 +76,46 @@ func show_summary(revenue: float, reputation_change: float, harvests: Array[Stri
 	]
 
 	page_one.visible = true
+	page_one.modulate.a = 1.0
+	page_one.scale = Vector2.ONE
 	page_two.visible = false
 	visible = true
 
 
 func _on_next_pressed() -> void:
-	page_one.visible = false
-	page_two.visible = true
+	if page_one == null or page_two == null:
+		return
+		
+	# Play clink / page flip BGM / SFX
+	if AudioManager:
+		AudioManager.play_sfx(&"bell")
 
-	if TimeManager.is_penalty_wake:
-		penalty_label.visible = true
-		penalty_label.text = "因过度劳累，错过了今日晨练"
-		_set_training_enabled(false)
-	else:
-		penalty_label.visible = false
-		_set_training_enabled(true)
-		_load_yesterday_training()
+	# Paper flip fade and scale transition
+	var transition_tween: Tween = create_tween()
+	transition_tween.tween_property(page_one, "modulate:a", 0.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	transition_tween.parallel().tween_property(page_one, "scale", Vector2(0.9, 0.9), 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	
+	transition_tween.tween_callback(func():
+		page_one.visible = false
+		page_one.scale = Vector2.ONE
+		page_one.modulate.a = 1.0
+		
+		page_two.visible = true
+		page_two.modulate.a = 0.0
+		page_two.scale = Vector2(1.1, 1.1)
+		
+		if TimeManager.is_penalty_wake:
+			penalty_label.visible = true
+			penalty_label.text = "因过度劳累，错过了今日晨练"
+			_set_training_enabled(false)
+		else:
+			penalty_label.visible = false
+			_set_training_enabled(true)
+			_load_yesterday_training()
+	)
+	
+	transition_tween.tween_property(page_two, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	transition_tween.parallel().tween_property(page_two, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _on_confirm_pressed() -> void:
